@@ -132,3 +132,69 @@ func TestFloorMatchesOriginalX86Routine(t *testing.T) {
 		}
 	}
 }
+
+// These shots are captured by executing the original x86 firing branch and
+// spawn routine for all weapon strengths in both facing directions.
+func TestProjectileFanMatchesOriginalX86Routine(t *testing.T) {
+	raw, err := os.ReadFile("testdata/native-fire.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, err := csv.NewReader(strings.NewReader(string(raw))).ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 19 {
+		t.Fatalf("incomplete native firing fixture: %d rows", len(rows))
+	}
+	for power := 0; power <= 2; power++ {
+		for _, state := range []int{1200, 1201} {
+			g := testEngine(t)
+			g.Power = power
+			g.setPlayerType(state)
+			initial := len(g.Entities)
+			g.Step(Fire)
+			var shots []Entity
+			for _, entity := range g.Entities[initial:] {
+				if entity.Type == 1300 || entity.Type == 1301 {
+					shots = append(shots, entity)
+				}
+			}
+			matched := 0
+			for _, row := range rows[1:] {
+				readInt := func(column int) int {
+					value, err := strconv.Atoi(row[column])
+					if err != nil {
+						t.Fatal(err)
+					}
+					return value
+				}
+				if readInt(0) != power || readInt(1) != state {
+					continue
+				}
+				index := readInt(2)
+				if index >= len(shots) {
+					t.Fatalf("missing native projectile %d for power=%d state=%d", index, power, state)
+				}
+				shot := shots[index]
+				if shot.Type != readInt(3) {
+					t.Fatalf("incorrect projectile bank: %+v", shot)
+				}
+				got := []float64{shot.X, shot.Y, shot.DX, shot.DY}
+				for n, value := range got {
+					want, err := strconv.ParseFloat(row[n+4], 64)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if value != want {
+						t.Fatalf("power=%d state=%d shot=%d field=%s: got %v, want %v", power, state, index, rows[0][n+4], value, want)
+					}
+				}
+				matched++
+			}
+			if matched != len(shots) {
+				t.Fatalf("power=%d state=%d: %d shots, want %d", power, state, len(shots), matched)
+			}
+		}
+	}
+}

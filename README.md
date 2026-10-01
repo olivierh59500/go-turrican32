@@ -36,6 +36,13 @@ to play.
 Release the jump button early for a shorter jump. Weapon pickups increase the
 number of projectiles. Collecting an R marker sets the next respawn position.
 
+T32k fires toward the player's facing direction. The basic shot is horizontal;
+weapon upgrades add upward and downward projectiles with the original vertical
+velocities of ±0.4 and ±0.8 pixels per tick. The steerable lightning beam from
+the full Turrican game is not present in this 32K version. Holding Fire does
+not enable a separate weapon or aiming mode; release and press it for the next
+shot.
+
 ## Android
 
 The ARM64 Android application uses a virtual joystick and a separate Fire
@@ -103,7 +110,10 @@ go vet ./...
 Tests cover the native spawn and floor height, jump release, weapon/gem
 separation, projectile banks and respawn/reset behaviour. A fixture containing
 73 samples executed by the original x86 floor routine checks its one-pixel
-platform separation. This is a focused collision check; it does not establish
+platform separation. Another fixture checks all 18 projectiles produced by
+the original firing routine for both facing directions and three weapon
+strengths, including the diagonal velocities and muzzle positions.
+These are focused checks; they do not establish
 frame-for-frame equivalence for every gameplay sequence. The title movement
 and explosion visuals are recreated, rather than exact translations of their
 original routines.

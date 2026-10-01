@@ -263,12 +263,12 @@ func (e *Engine) Step(input byte) {
 		}
 		e.spawn(id, p.X+12+direction*6, p.Y+15, direction, 0)
 		if e.Power > 0 {
-			e.spawn(id, p.X+12+direction*6, p.Y+11, direction, 0)
-			e.spawn(id, p.X+12+direction*6, p.Y+19, direction, 0)
+			e.spawn(id, p.X+12+direction*6, p.Y+11, direction, -.4)
+			e.spawn(id, p.X+12+direction*6, p.Y+19, direction, .4)
 		}
 		if e.Power > 1 {
-			e.spawn(id, p.X+12+direction*6, p.Y+7, direction, 0)
-			e.spawn(id, p.X+12+direction*6, p.Y+23, direction, 0)
+			e.spawn(id, p.X+12+direction*6, p.Y+19, direction, .8)
+			e.spawn(id, p.X+12+direction*6, p.Y+11, direction, -.8)
 		}
 	}
 	e.pickups()
