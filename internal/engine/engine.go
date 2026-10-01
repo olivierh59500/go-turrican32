@@ -388,7 +388,8 @@ func (e *Engine) moveEntities() {
 					continue
 				}
 				qd := e.def(q.Type)
-				if qd.Category == 3 {
+				// Native category-2 shots pass through other projectiles.
+				if qd.Category == 3 || qd.Category == 2 {
 					continue
 				}
 				a, b, c, f := e.bounds(p)

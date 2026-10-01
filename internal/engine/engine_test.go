@@ -198,3 +198,24 @@ func TestProjectileFanMatchesOriginalX86Routine(t *testing.T) {
 		}
 	}
 }
+
+func TestUpgradedProjectilesKeepAllFiveBranches(t *testing.T) {
+	g := testEngine(t)
+	p := g.Entities[g.Player]
+	g.Entities = []Entity{p}
+	g.Player = 0
+	g.Power = 2
+	g.Step(Fire)
+	for range 8 {
+		g.Step(Fire)
+	}
+	count := 0
+	for _, shot := range g.Entities {
+		if (shot.Type == 1300 || shot.Type == 1301) && !shot.Deleted {
+			count++
+		}
+	}
+	if count != 5 {
+		t.Fatalf("the weapon fan lost overlapping branches: got %d shots, want 5", count)
+	}
+}
