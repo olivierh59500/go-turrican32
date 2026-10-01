@@ -1,0 +1,13 @@
+{
+  "frames": 1259,
+  "fps": 60,
+  "duration_seconds": 20.983333333333334,
+  "level_sha256": "f75ca850f2504547a109c1f44d635124b61bbeb68ed260f048683e6b928598f9",
+  "controls": {
+    "left": 1,
+    "right": 2,
+    "jump": 4,
+    "fire": 8
+  },
+  "route": "Platforms, weapon pickup, upper ledges and return through the health bonus."
+}

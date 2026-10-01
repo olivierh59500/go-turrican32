@@ -22,6 +22,15 @@ Use `go run . -play` to enter the level directly or `go run . -mute` to disable
 audio. All runtime assets are embedded; the original executable is not needed
 to play.
 
+`go run . -demo` starts attract mode after the title. F1 toggles the mode; it
+also starts automatically after 15 seconds of inactivity on the title.
+The recorded circuit climbs platforms, changes direction, collects the weapon
+upgrade and returns through a health bonus. It feeds ordinary gamepad inputs
+to the same engine as interactive play, with enemies, damage and collisions
+enabled. It is a selected circuit, rather than a complete walkthrough of the
+level. The title returns between circuits. Move or fire to take control at the
+current position. Video export uses this same mode.
+
 | Action | Keyboard |
 | --- | --- |
 | Move | Left/Right arrows or A/D |
@@ -31,6 +40,7 @@ to play.
 | Return to title / restart | R |
 | Pause | P |
 | Mute | M |
+| Demo / take control | F1 |
 | Return to title / quit from title | Escape |
 
 Release the jump button early for a shorter jump. Weapon pickups increase the
@@ -47,7 +57,8 @@ shot.
 
 The ARM64 Android application uses a virtual joystick and a separate Fire
 button. Push the joystick upward to jump. Fire also starts the game from the
-title. Reset and Pause are available in the side margins. The screen stays
+title. Demo, Reset and Pause are available in the side margins. Move the
+joystick or press Fire to take over from the demo. The screen stays
 awake while the game is visible.
 
 ```sh
@@ -71,6 +82,11 @@ playback and capture/export facilities. Gameplay, collisions and the native
 asset decoder are implemented in Go in this project. The simulation uses the
 original movement constants, jump release, projectile directions and camera
 smoothing, independently of the display refresh rate.
+
+The animated texture layer retains its original 128 wave frames and its
+decoration flags. It neither blocks movement nor damages the player. Enemy
+shots turn into brief impact sprites when they hit terrain. Spent projectiles
+are removed from the active object list to keep repeated demo playback bounded.
 
 The soundtrack uses **Turrican World 1-1** on the title and **Turrican II:
 The Desert Rocks** during play. These are YM replacements for the original
@@ -98,6 +114,7 @@ ffmpeg -i recordings/turrican32.mp4 \
 - `internal/engine`: platform physics, entities, pickups and restart state.
 - `internal/game`: DCK composition, title, viewport and input handling.
 - `internal/controls`: virtual joystick with contact ownership and a dead zone.
+- `internal/attract`: recorded gameplay input and complete replay validation.
 - `internal/extract`: sprite, font and procedural texture decoding.
 - `assets`: embedded graphics, level and YM music.
 - `mobile` and `android`: Android binding and application shell.

@@ -16,12 +16,13 @@ func main() {
 	directory := flag.String("capture", "", "capture directory")
 	frame := flag.Int("frame", 300, "capture tick")
 	playing := flag.Bool("play", false, "start in the level")
+	demo := flag.Bool("demo", false, "play the recorded demonstration")
 	flag.Parse()
 	if *directory != "" {
 		var g *game.Game
 		err := capture.Run(capture.Config{Directory: *directory, Frames: []int{*frame}, Width: game.Width, Height: game.Height}, func() (ebiten.Game, error) {
 			var e error
-			g, e = game.New(game.Config{Mute: true})
+			g, e = game.New(game.Config{Mute: true, Demo: *demo})
 			if *playing && g != nil {
 				e = g.Start()
 			}
@@ -36,7 +37,7 @@ func main() {
 		}
 		return
 	}
-	g, err := game.New(game.Config{Mute: *mute})
+	g, err := game.New(game.Config{Mute: *mute, Demo: *demo})
 	if err != nil {
 		log.Fatal(err)
 	}

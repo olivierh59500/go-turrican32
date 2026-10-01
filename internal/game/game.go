@@ -13,6 +13,7 @@ import (
 	music "github.com/olivierh59500/democonstructionkit/sound/ebiten"
 	"github.com/olivierh59500/democonstructionkit/sprites"
 	"github.com/olivierh59500/go-turrican32/assets"
+	"github.com/olivierh59500/go-turrican32/internal/attract"
 	"github.com/olivierh59500/go-turrican32/internal/controls"
 	"github.com/olivierh59500/go-turrican32/internal/data"
 	"github.com/olivierh59500/go-turrican32/internal/engine"
@@ -24,7 +25,7 @@ import (
 
 const Width, Height, FPS = 320, 240, 60
 
-type Config struct{ Mute, Mobile, Recording bool }
+type Config struct{ Mute, Mobile, Recording, Demo bool }
 type Game struct {
 	core                       *engine.Engine
 	config                     Config
@@ -42,6 +43,9 @@ type Game struct {
 	joystick                   controls.Joystick
 	contacts                   []controls.Touch
 	ids                        []ebiten.TouchID
+	demo                       *attract.Sequence
+	demoActive, autoDemo       bool
+	demoFrame, titleAge        int
 }
 
 func New(config Config) (_ *Game, err error) {
@@ -56,6 +60,11 @@ func New(config Config) (_ *Game, err error) {
 		return nil, err
 	}
 	g.core = engine.New(d)
+	g.demo, err = attract.Load()
+	if err != nil {
+		return nil, err
+	}
+	g.autoDemo = config.Demo || config.Recording
 	load := func(name string) (*ebiten.Image, error) {
 		b, e := assets.Files.ReadFile(name)
 		if e != nil {
@@ -148,6 +157,9 @@ func (g *Game) input() (byte, string) {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		action = "play"
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyF1) {
+		action = "demo"
+	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		action = "reset"
 	}
@@ -198,6 +210,9 @@ func (g *Game) input() (byte, string) {
 					action = "play"
 				}
 			}
+			if t.Pressed && t.X < 90 && t.Y >= 45 && t.Y < 85 {
+				action = "demo"
+			}
 		}
 	}
 	return mask, action
@@ -205,32 +220,31 @@ func (g *Game) input() (byte, string) {
 func (g *Game) Update() error {
 	mask, action := g.input()
 	if g.config.Recording {
-		if g.title && g.tick >= FPS*6 {
-			action = "play"
-		}
-		if !g.title {
-			mask = engine.Right
-			if g.core.Tick%80 < 35 {
-				mask |= engine.Jump
-			}
-			if g.core.Tick%10 < 5 {
-				mask |= engine.Fire
-			}
-			if g.core.GameOver || g.core.Won {
-				action = "reset"
-			}
+		mask, action = 0, ""
+	}
+	if g.title && !g.paused {
+		g.titleAge++
+		if (g.autoDemo && g.titleAge >= FPS*6) || g.titleAge >= FPS*15 {
+			action = "demo"
 		}
 	}
 	switch action {
 	case "quit":
 		return ebiten.Termination
 	case "reset":
-		g.core.Reset()
-		g.title = true
-		g.paused = false
 		g.joystick.Reset()
-		if err := g.playTrack("title.ym"); err != nil {
+		if err := g.showTitle(false); err != nil {
 			return err
+		}
+	case "demo":
+		if g.demoActive {
+			g.demoActive, g.autoDemo = false, false
+		} else {
+			if err := g.Start(); err != nil {
+				return err
+			}
+			g.demoActive, g.autoDemo = true, true
+			g.demoFrame = 0
 		}
 	case "pause":
 		g.paused = !g.paused
@@ -259,6 +273,19 @@ func (g *Game) Update() error {
 	if g.paused {
 		return nil
 	}
+	if g.demoActive {
+		manual := mask != 0 || (g.config.Mobile && g.joystick.Active())
+		if !g.config.Recording && manual {
+			g.demoActive, g.autoDemo = false, false
+		} else {
+			input, ok := g.demo.Input(g.demoFrame)
+			if !ok || g.core.GameOver || g.core.Won {
+				return g.showTitle(true)
+			}
+			mask = input
+			g.demoFrame++
+		}
+	}
 	g.tick++
 	if !g.title {
 		g.core.Step(mask)
@@ -268,6 +295,7 @@ func (g *Game) Update() error {
 func (g *Game) Draw(dst *ebiten.Image) {
 	g.canvas.Fill(color.RGBA{A: 255})
 	g.slots = g.slots[:0]
+	overlayAt := -1
 	g.background.Draw(g.canvas, g.images[g.backgroundIndex], composite.BackgroundPose{X: -float64(g.core.CameraX) / 4, Y: -float64(g.core.CameraY) / 4})
 	if g.title {
 		g.slots = append(g.slots, sprites.ImageSlot{Image: len(g.images) - 1, X: 40, Y: 15})
@@ -275,6 +303,7 @@ func (g *Game) Draw(dst *ebiten.Image) {
 		g.label("MYTH, TMBINC, ARTHUS,", 80, 122)
 		g.label("KB, RYG AND KOJOTE", 88, 134)
 		g.label("INSERT COIN TO START", 88, 168)
+		g.label("F1: DEMO", 128, 182)
 		frame := int(float64(g.tick)*.2) % 6
 		g.slots = append(g.slots, sprites.ImageSlot{Image: g.frame[[2]int{1230, frame}], X: float64(140 + int(35*math.Sin(float64(g.tick)/60))), Y: 191})
 	} else {
@@ -302,8 +331,11 @@ func (g *Game) Draw(dst *ebiten.Image) {
 			tint.ScaleAlpha(float32(opacity))
 			g.slots = append(g.slots, sprites.ImageSlot{Image: index, X: float64(x), Y: float64(y), Tint: tint})
 		}
-		vector.FillRect(g.canvas, 0, 0, Width, 15, color.RGBA{A: 160}, false)
+		overlayAt = len(g.slots)
 		g.label(fmt.Sprintf("SCORE: %05d LIVES:%d BONUS:%d", g.core.Score, g.core.Lives, g.core.Bonus), 8, 3)
+		if g.demoActive {
+			g.label("DEMO - MOVE TO PLAY", 88, 228)
+		}
 		if g.core.GameOver {
 			g.label("GAME OVER", 124, 108)
 			g.label("PRESS R TO RESTART", 92, 126)
@@ -313,10 +345,24 @@ func (g *Game) Draw(dst *ebiten.Image) {
 			g.label("PRESS R TO RESTART", 92, 126)
 		}
 	}
-	if err := g.batch.SetSlots(g.slots); err != nil {
+	worldSlots := g.slots
+	if overlayAt >= 0 {
+		worldSlots = g.slots[:overlayAt]
+	}
+	if err := g.batch.SetSlots(worldSlots); err != nil {
 		panic(err)
 	}
 	g.batch.Draw(g.canvas)
+	if overlayAt >= 0 {
+		vector.FillRect(g.canvas, 0, 0, Width, 15, color.RGBA{A: 200}, false)
+		if g.demoActive {
+			vector.FillRect(g.canvas, 84, 225, 156, 14, color.RGBA{A: 180}, false)
+		}
+		if err := g.batch.SetSlots(g.slots[overlayAt:]); err != nil {
+			panic(err)
+		}
+		g.batch.Draw(g.canvas)
+	}
 	dst.Fill(color.RGBA{A: 255})
 	offset := (g.uiWidth - Width) / 2
 	var op ebiten.DrawImageOptions
@@ -329,6 +375,11 @@ func (g *Game) Draw(dst *ebiten.Image) {
 		vector.FillCircle(dst, float32(g.uiWidth-43), 180, 32, color.RGBA{150, 60, 58, 235}, false)
 		ebitenutil.DebugPrintAt(dst, "FIRE", g.uiWidth-59, 177)
 		ebitenutil.DebugPrintAt(dst, "RESET", 20, 15)
+		demoLabel := "DEMO"
+		if g.demoActive {
+			demoLabel = "PLAY"
+		}
+		ebitenutil.DebugPrintAt(dst, demoLabel, 20, 58)
 		ebitenutil.DebugPrintAt(dst, "PAUSE", g.uiWidth-63, 15)
 	}
 }
@@ -362,12 +413,21 @@ func (g *Game) Close() {
 func (g *Game) Start() error {
 	g.title = false
 	g.paused = false
+	g.demoActive, g.autoDemo = false, false
 	g.core.Reset()
 	return g.playTrack("game.ym")
+}
+
+func (g *Game) showTitle(auto bool) error {
+	g.core.Reset()
+	g.title, g.paused = true, false
+	g.demoActive, g.autoDemo = false, auto
+	g.demoFrame, g.titleAge = 0, 0
+	return g.playTrack("title.ym")
 }
 
 func (g *Game) Tick() int { return g.tick }
 func (g *Game) VerificationState() string {
 	p := g.core.Entities[g.core.Player]
-	return fmt.Sprintf("player=(%.1f,%.1f) health=%d entities=%d", p.X, p.Y, g.core.Health, len(g.core.Entities))
+	return fmt.Sprintf("player=(%.1f,%.1f) health=%d entities=%d demo=%v frame=%d", p.X, p.Y, g.core.Health, len(g.core.Entities), g.demoActive, g.demoFrame)
 }
