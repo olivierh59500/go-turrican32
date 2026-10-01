@@ -219,3 +219,69 @@ func TestUpgradedProjectilesKeepAllFiveBranches(t *testing.T) {
 		t.Fatalf("the weapon fan lost overlapping branches: got %d shots, want 5", count)
 	}
 }
+
+func TestTurretProjectileBecomesHarmlessOnTerrainImpact(t *testing.T) {
+	g := testEngine(t)
+	g.CameraX, g.CameraY = 0, 0
+	player := g.Entities[g.Player]
+	g.Entities = []Entity{player, {Type: 100, X: 100, Y: 100}}
+	g.Player = 0
+	g.spawn(1350, 94, 105, 2, 0)
+	g.moveEntities()
+	impact := g.Entities[2]
+	if impact.Type != 1500 || impact.X != 94 || impact.Y != 105 {
+		t.Fatalf("turret shot remained a damaging projectile inside terrain: %+v", impact)
+	}
+	g.Entities[0].X, g.Entities[0].Y = 94, 105
+	health := g.Health
+	g.pickups()
+	if g.Health != health {
+		t.Fatal("impact animation damaged the player")
+	}
+	for range 12 {
+		g.animate()
+	}
+	if !g.Entities[2].Deleted {
+		t.Fatal("impact animation never expired")
+	}
+}
+
+func TestOffscreenProjectilesExpireAndPreservePlayerIndex(t *testing.T) {
+	g := testEngine(t)
+	player := g.Entities[g.Player]
+	g.Entities = []Entity{{Type: 100, Deleted: true}, player}
+	g.Player = 1
+	g.CameraX, g.CameraY = 0, 0
+	g.spawn(1300, 600, 80, 4, 0)
+	for range 66 {
+		g.moveEntities()
+		g.compact()
+	}
+	if len(g.Entities) != 1 || g.Player != 0 || g.Entities[0].X != player.X || g.Entities[0].Y != player.Y {
+		t.Fatalf("spent objects were retained or player moved during compaction: player=%d entities=%+v", g.Player, g.Entities)
+	}
+}
+
+func TestAnimatedTextureUsesNativeDecorationFlags(t *testing.T) {
+	g := testEngine(t)
+	d := g.Data.Definitions[8]
+	if d.Category != 3 || !d.Passable || !d.Transparent || d.Last != 127 || d.Rate != .4 {
+		t.Fatalf("incorrect native animated texture: %+v", d)
+	}
+	p := g.Entities[g.Player]
+	g.spawn(8, p.X, p.Y, 0, 0)
+	health := g.Health
+	g.pickups()
+	if g.Health != health {
+		t.Fatal("animated decoration damaged the player")
+	}
+	frames := 0
+	for _, f := range g.Data.Frames {
+		if f.Type == 8 {
+			frames++
+		}
+	}
+	if frames != 128 {
+		t.Fatalf("animated texture has %d frames, want 128", frames)
+	}
+}

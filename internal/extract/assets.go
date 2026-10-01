@@ -123,6 +123,9 @@ func ExportImage(exe []byte, directory string) error {
 		}
 		meta.Definitions = append(meta.Definitions, def)
 	}
+	if err := exportTextures(exe, directory); err != nil {
+		return err
+	}
 	if err := exportVariants(exe, directory, &meta); err != nil {
 		return err
 	}
@@ -158,9 +161,6 @@ func ExportImage(exe []byte, directory string) error {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(directory, "font.bin"), font, 0644); err != nil {
-		return err
-	}
-	if err := exportTextures(exe, directory); err != nil {
 		return err
 	}
 	if err := exportTitle(directory, raw(0x40d538, 0x546)); err != nil {

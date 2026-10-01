@@ -89,14 +89,18 @@ func overlap(al, at, ar, ab, bl, bt, br, bb int) bool {
 func (e *Engine) solid(p Entity, vertical int) int {
 	l, t, r, b := e.bounds(p)
 	for i, q := range e.Entities {
-		if i == e.Player || q.Deleted || e.def(q.Type).Passable {
+		if i == e.Player || q.Deleted {
 			continue
 		}
-		d := e.def(q.Type)
-		bl, bt, br, bb := int(q.X), int(q.Y), int(q.X)+d.Width, int(q.Y)+d.Height
+		bl, bt := int(q.X), int(q.Y)
 		if abs(bl-l) >= 160 || abs(bt-t) >= 120 {
 			continue
 		}
+		d := e.def(q.Type)
+		if d.Passable {
+			continue
+		}
+		br, bb := bl+d.Width, bt+d.Height
 		if vertical == 1 {
 			if b+1 == bt && l <= br && r >= bl {
 				return i
@@ -134,6 +138,7 @@ func (e *Engine) Step(input byte) {
 		return
 	}
 	e.Tick++
+	defer e.compact()
 	if e.DeathAge > 0 {
 		e.DeathAge++
 		e.animate()
@@ -313,6 +318,22 @@ func (e *Engine) animate() {
 		}
 	}
 }
+
+// Remove spent objects in one pass while preserving native drawing order.
+func (e *Engine) compact() {
+	write := 0
+	for i, entity := range e.Entities {
+		if entity.Deleted {
+			continue
+		}
+		if i == e.Player {
+			e.Player = write
+		}
+		e.Entities[write] = entity
+		write++
+	}
+	e.Entities = e.Entities[:write]
+}
 func (e *Engine) visible(p Entity) bool {
 	return p.X > float64(e.CameraX-270) && p.X < float64(e.CameraX+320) && p.Y > float64(e.CameraY-120) && p.Y < float64(e.CameraY+240)
 }
@@ -323,7 +344,17 @@ func (e *Engine) moveEntities() {
 		}
 		p := e.Entities[i]
 		d := e.def(p.Type)
-		if !e.visible(p) {
+		visible := e.visible(p)
+		if p.Type == 1300 || p.Type == 1301 || p.Type == 1350 {
+			if visible {
+				p.Life = 60
+			} else {
+				p.Life--
+				p.Deleted = p.Life < 55
+			}
+			e.Entities[i] = p
+		}
+		if !visible {
 			continue
 		}
 		if p.Type == 1020 && e.random()%10 == 0 {
@@ -383,6 +414,7 @@ func (e *Engine) moveEntities() {
 		p.X += p.DX
 		p.Y += p.DY
 		if d.Category == 2 {
+			a, b, c, f := e.bounds(p)
 			for j, q := range e.Entities {
 				if j == i || j == e.Player || q.Deleted || q.Type == 1350 {
 					continue
@@ -392,8 +424,8 @@ func (e *Engine) moveEntities() {
 				if qd.Category == 3 || qd.Category == 2 {
 					continue
 				}
-				a, b, c, f := e.bounds(p)
-				l, t, r, s := e.bounds(q)
+				l, t := int(q.X)+qd.Margin, int(q.Y)
+				r, s := int(q.X)+qd.Width-qd.Margin, t+qd.Height
 				if overlap(a, b, c, f, l, t, r, s) {
 					if qd.Category == 1 {
 						e.Score += qd.Health
@@ -418,6 +450,9 @@ func (e *Engine) moveEntities() {
 			} else if d.Behavior == 2 {
 				p.Deleted = true
 			}
+			// Native collision handling always selects the declared target type,
+			// including turret projectiles turning into harmless impact sprites.
+			p.Type = d.Target
 		}
 		e.Entities[i] = p
 	}
