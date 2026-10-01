@@ -23,7 +23,7 @@ func main() {
 			var e error
 			g, e = game.New(game.Config{Mute: true})
 			if *playing && g != nil {
-				g.Start()
+				e = g.Start()
 			}
 			return g, e
 		})
@@ -42,7 +42,9 @@ func main() {
 	}
 	defer g.Close()
 	if *playing {
-		g.Start()
+		if err = g.Start(); err != nil {
+			log.Fatal(err)
+		}
 	}
 	ebiten.SetTPS(60)
 	ebiten.SetWindowSize(960, 720)

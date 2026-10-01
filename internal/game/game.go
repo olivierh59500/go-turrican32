@@ -235,7 +235,7 @@ func (g *Game) Update() error {
 	case "pause":
 		g.paused = !g.paused
 		if g.player != nil {
-			if g.paused {
+			if g.paused || g.muted {
 				g.player.Pause()
 			} else {
 				g.player.Play()
@@ -244,7 +244,7 @@ func (g *Game) Update() error {
 	case "mute":
 		g.muted = !g.muted
 		if g.player != nil {
-			if g.muted {
+			if g.muted || g.paused {
 				g.player.Pause()
 			} else {
 				g.player.Play()
@@ -252,9 +252,7 @@ func (g *Game) Update() error {
 		}
 	}
 	if g.title && (action == "play" || mask&engine.Fire != 0) {
-		g.title = false
-		g.core.Reset()
-		if err := g.playTrack("game.ym"); err != nil {
+		if err := g.Start(); err != nil {
 			return err
 		}
 	}
@@ -361,7 +359,12 @@ func (g *Game) Close() {
 }
 
 // Start enters the original level from its initial player position.
-func (g *Game) Start() { g.title = false; g.core.Reset() }
+func (g *Game) Start() error {
+	g.title = false
+	g.paused = false
+	g.core.Reset()
+	return g.playTrack("game.ym")
+}
 
 func (g *Game) Tick() int { return g.tick }
 func (g *Game) VerificationState() string {
