@@ -98,11 +98,11 @@ func (e *Engine) solid(p Entity, vertical int) int {
 			continue
 		}
 		if vertical == 1 {
-			if overlap(l, b, r, b, bl, bt, br, bb) {
+			if b+1 == bt && l <= br && r >= bl {
 				return i
 			}
 		} else if vertical == -1 {
-			if overlap(l, t, r, t, bl, bt, br, bb) {
+			if t-1 == bb && l <= br && r >= bl {
 				return i
 			}
 		} else if overlap(l, t, r, b, bl, bt, br, bb) {
@@ -158,7 +158,6 @@ func (e *Engine) Step(input byte) {
 	e.moveEntities()
 	p := e.Entities[e.Player]
 	test := p
-	test.Y++
 	e.grounded = e.solid(test, 1) != -1
 	if !e.grounded {
 		e.VY = math.Min(6, e.VY+.2)
@@ -353,6 +352,32 @@ func (e *Engine) moveEntities() {
 		}
 		if p.Life > 0 {
 			p.Life--
+		}
+		if d.Behavior == 3 {
+			old := p
+			p.X += p.DX
+			p.Y--
+			side := e.solidOther(p, i) >= 0
+			onFloor := false
+			for j, q := range e.Entities {
+				if j == i || j == e.Player || q.Deleted || e.def(q.Type).Passable {
+					continue
+				}
+				l, _, r, b := e.bounds(p)
+				ql, qt, qr, _ := e.bounds(q)
+				if b+1 == qt && l <= qr && r >= ql {
+					onFloor = true
+					break
+				}
+			}
+			if side || !onFloor {
+				p.X = old.X
+				p.DX = -p.DX
+				p.Type = d.Target
+			}
+			p.Y = old.Y
+			e.Entities[i] = p
+			continue
 		}
 		old := p
 		p.X += p.DX

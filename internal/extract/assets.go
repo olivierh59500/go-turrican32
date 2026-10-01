@@ -163,6 +163,37 @@ func ExportImage(exe []byte, directory string) error {
 	if err := exportTextures(exe, directory); err != nil {
 		return err
 	}
+	if err := exportTitle(directory, raw(0x40d538, 0x546)); err != nil {
+		return err
+	}
 	fmt.Println("Decoded", len(meta.Definitions), "definitions and", len(meta.Frames), "native frames")
 	return nil
+}
+
+func exportTitle(dir string, mask []byte) error {
+	f, err := os.Open(filepath.Join(dir, "texture-7.png"))
+	if err != nil {
+		return err
+	}
+	tex, err := png.Decode(f)
+	f.Close()
+	if err != nil {
+		return err
+	}
+	img := image.NewNRGBA(image.Rect(0, 0, 240, 45))
+	for i := 0; i < 240*45; i++ {
+		if mask[i/8]&(1<<uint(i%8)) != 0 {
+			img.Set(i%240, i/240, tex.At(i%240, i/240))
+		}
+	}
+	f, err = os.Create(filepath.Join(dir, "title.png"))
+	if err != nil {
+		return err
+	}
+	err = png.Encode(f, img)
+	closeErr := f.Close()
+	if err != nil {
+		return err
+	}
+	return closeErr
 }

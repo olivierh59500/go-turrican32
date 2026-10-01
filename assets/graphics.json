@@ -1021,7 +1021,7 @@
       "SpeedX": 0,
       "SpeedY": 0,
       "Passable": true,
-      "Transparent": false,
+      "Transparent": true,
       "Declared": true,
       "Width": 256,
       "Height": 128
@@ -1040,7 +1040,7 @@
       "SpeedX": 0,
       "SpeedY": 0,
       "Passable": true,
-      "Transparent": false,
+      "Transparent": true,
       "Declared": true,
       "Width": 256,
       "Height": 128
@@ -1059,7 +1059,7 @@
       "SpeedX": 0,
       "SpeedY": 0,
       "Passable": true,
-      "Transparent": false,
+      "Transparent": true,
       "Declared": true,
       "Width": 256,
       "Height": 128

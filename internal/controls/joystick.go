@@ -12,7 +12,7 @@ type Touch struct {
 }
 
 // Joystick owns one contact until release, including drags outside the base.
-// Its output is digital, matching Rick32's eight-way joystick input, while the
+// Its output is digital, matching the game's directional input, while the
 // thumb position follows the finger continuously within its circular travel.
 type Joystick struct {
 	CenterX, CenterY, Radius, Travel float64

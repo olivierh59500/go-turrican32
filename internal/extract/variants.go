@@ -73,7 +73,7 @@ func exportVariants(exe []byte, dir string, meta *Metadata) error {
 		}
 	}
 	for id := 7; id <= 9; id++ {
-		meta.Definitions = append(meta.Definitions, Definition{ID: id, Width: 256, Height: 128, Passable: true, First: 0, Last: 0, Animation: 1, Rate: 0, Declared: true, Target: id})
+		meta.Definitions = append(meta.Definitions, Definition{ID: id, Width: 256, Height: 128, Passable: true, Transparent: true, First: 0, Last: 0, Animation: 1, Rate: 0, Declared: true, Target: id})
 		meta.Frames = append(meta.Frames, Frame{id, 0, 256, 128, fmt.Sprintf("texture-%d.png", id)})
 	}
 	return nil

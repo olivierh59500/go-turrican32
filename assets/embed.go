@@ -3,5 +3,5 @@ package assets
 
 import "embed"
 
-//go:embed *.bin *.json *.png sprites/*
+//go:embed *.bin *.json *.png *.ym sprites/*
 var Files embed.FS
