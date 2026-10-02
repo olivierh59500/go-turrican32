@@ -78,7 +78,9 @@ staged_apk="$release_dir/.turrican32-signing.apk"
 trap 'rm -f "$staged_apk"' EXIT HUP INT TERM
 set -- --ks "$keystore_path" --ks-key-alias "$key_alias"
 if [ -n "$password_file" ]; then
-    set -- "$@" --ks-pass "file:$password_file" --key-pass "file:$password_file"
+    # PKCS12 uses the store password for the private key too. Passing the
+    # same file twice makes apksigner consume a nonexistent second line.
+    set -- "$@" --ks-pass "file:$password_file"
 fi
 "$release_tools/apksigner" sign "$@" --out "$staged_apk" "$aligned_apk"
 "$release_tools/apksigner" verify --verbose --print-certs "$staged_apk"
