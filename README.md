@@ -75,6 +75,23 @@ application on an authorized device connected through ADB. Set
 The package name is `com.olivierh.turrican32`. The generated debug APK is
 `android/app/build/outputs/apk/debug/app-debug.apk`.
 
+## Android release
+
+`./scripts/build-release-android.sh` rebuilds the pinned Go library and produces
+a signed ARM64 release in `.local/release/`, without installing an application.
+It uses `~/.android-keys/malakh-release.p12` and alias `malakh-release` by default;
+`--keystore` and `--alias` select another signing identity. The signing tool asks
+for the password in an interactive terminal. `--password-file` can instead name
+a private local file containing only that password. Keys/passwords are never
+written to project sources or command-line arguments.
+
+`--unsigned-only` builds and validates an aligned release for inspection without
+opening the keystore. Unsigned outputs must not be distributed. The signed APK
+is verified before replacing the preceding output; its SHA-256 file accompanies
+the release. Keep the same application ID and signing key for future updates,
+and increment the native Android version code. The current package is ARM64 only.
+
+
 ## Graphics and audio
 
 DCK v1.0.14 provides the image-slot renderer, scrolling background, music
