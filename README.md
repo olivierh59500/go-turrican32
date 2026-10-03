@@ -10,6 +10,33 @@ The original sprites, bitmap font and level data are decoded from the game
 binary. The procedural cloud and rock textures are generated in Go from the
 embedded texture programs.
 
+<!-- Project showcase -->
+## Screenshots
+
+[![Jumping between rock platforms with gems and spread shots](docs/media/screenshot-1.png)](docs/media/screenshot-1.png)
+
+Jumping between rock platforms with gems and spread shots.
+
+[![Firing past twisted rock columns and flying enemies](docs/media/screenshot-2.png)](docs/media/screenshot-2.png)
+
+Firing past twisted rock columns and flying enemies.
+
+[![Jumping and firing through a narrow vertical rock passage](docs/media/screenshot-3.png)](docs/media/screenshot-3.png)
+
+Jumping and firing through a narrow vertical rock passage.
+
+## Video
+
+[![Animated preview of Turrican32 Go](docs/media/preview.gif)](https://github.com/olivierh59500/go-turrican32/raw/refs/heads/main/docs/media/preview.mp4)
+
+**[Watch or download the 22-second MP4 preview with sound](https://github.com/olivierh59500/go-turrican32/raw/refs/heads/main/docs/media/preview.mp4)**
+
+This short showcase combines selected passages from the Go production.
+
+The animated image is silent; the MP4 includes the soundtrack.
+
+<!-- End project showcase -->
+
 ## Run on desktop
 
 Go 1.26 or newer is required.
